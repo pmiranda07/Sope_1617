@@ -16,7 +16,7 @@ Request* generateRequest(int duration){
 int main(int argc, char* argv[]){
 
   if(argc != 3){
-    printf("Sintax must be: program_name <number of requests> <max duration>\n");
+    printf("Sintax must be: gerador <numero de pedidos> <max.utilizacao>\n");
     exit(-1);
   }
 
