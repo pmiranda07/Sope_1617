@@ -1,10 +1,14 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <time.h>
+#include <sys/time.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <errno.h>
+#include <pthread.h>
+#include <string.h>
+
 
 
 char* gen_fifo = "/tmp/entrada";
