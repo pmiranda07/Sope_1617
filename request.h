@@ -11,8 +11,6 @@
 #include <time.h>
 #include <sys/file.h>
 
-
-
 char* gen_fifo = "/tmp/entrada";
 char* rej_fifo = "/tmp/rejeitados";
 
