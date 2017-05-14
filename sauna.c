@@ -3,7 +3,7 @@
 FILE* WFile;
 int capacidade;
 int rec_F, rec_M, rej_F, rej_M, done_F, done_M;
-char genderUsing="N";
+char genderUsing='N';
 struct timeval t0;
 int faltamLer;
 int ENT_FIFO_FD;
@@ -35,7 +35,7 @@ void writeToFile(Request *req, int tid, char* tip){
 
   fprintf(WFile, "%-9.2f - %-4d - %-12d - %-4d: %-1c - %-4d - %-10s\n", dt, getpid(), tid ,req->id,req->gender, req->duration, tip);
 
-  if(request->gender=='M'){
+  if(req->gender=='M'){
     if(strcmp(tip,"REJECT")==0) rej_M++;
     if(strcmp(tip,"RECEIVE")==0) rec_M++;
     if(strcmp(tip,"SERVED")==0) done_M++;
@@ -67,7 +67,7 @@ void *RequestStays(void *arg) {
     printf("%d: %d\n", req->id, req->duration);
     usleep(req->duration*100);
 
-    printFile(req, pthread_self(),"SERVED");
+    writeToFile(req, (int)pthread_self(),"SERVED");
 
     ocupantes--;
 
@@ -77,7 +77,7 @@ void *RequestStays(void *arg) {
 
     if(ocupantes==0){
       genderUsing = 'N';
-      printf("Sauna is empty,any gender is allow);
+      printf("Sauna is empty,any gender is allow");
     }
 
     pthread_exit(NULL);
@@ -99,12 +99,12 @@ void DealRequest(Request* req){
                       if(req->gender == genderUsing && ocupantes < capacidade) {
                           printf("Sauna served:ID:%i-Gender:%c-Duration:%i-Denials:%i;\n", req->id, req->gender, req->duration, req->denials);
                           ocupantes++;
-                          WriteToFile(req, getpid(),"RECEIVE");
+                          writeToFile(req, getpid(),"RECEIVE");
                           pthread_create(&threadsTid[threadPos], NULL, RequestStays,req);
                           threadPos++;
                       } else {
-                          WriteToFile(req, getpid(),"RECEIVE");
-                          WriteToFile(req, getpid(), "REJECT");
+                          writeToFile(req, getpid(),"RECEIVE");
+                          writeToFile(req, getpid(), "REJECT");
                           DealReject(req);
 
                       }
