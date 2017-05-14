@@ -67,7 +67,7 @@ void *RequestStays(void *arg) {
     printf("%d: %d\n", req->id, req->duration);
     usleep(req->duration*100);
 
-    writeToFile(req, pthread_self(),"SERVED");
+    writeToFile(req, (int)pthread_self(),"SERVED");
 
     ocupantes--;
 
