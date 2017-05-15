@@ -1,0 +1,12 @@
+Os elementos do grupo são os seguintes:
+João Almeida - up201504874@fe.up.pt
+Pedro Miranda - up201506574@fe.up.pt
+Verónica Fradique - up201506440@fe.up.pt
+Turma 6
+
+Questão: Como foram evitadas as situações de competição no acesso a elementos partilhados?
+
+No código que desenvolvemos verifica-se a situação acima referida, ou seja, várias threads modificam a variável
+através da qual se faz a contagem do número de pessoas na sauna, o que leva a que exista uma secção crítica.
+A forma que encontramos para evitar este conflito, na atualização do valor da variável foi utilizar mutex, para evitar que
+duas threads tenham acesso em simultâneo a recursos partilhados por ambas.
