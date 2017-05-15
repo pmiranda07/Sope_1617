@@ -12,38 +12,45 @@ int ocupantes=0;
 pthread_t threadsTid[255];
 int threadPos=0;
 
+pthread_mutex_t threadMutex = PTHREAD_MUTEX_INITIALIZER;
+
+
 void printStats(){
 
-    printf("...Sauna Requests Receive...\n");
-    printf("M: %d\n", rec_M);
-    printf("F: %d\n", rec_F);
+    printf(" -- SAUNA RECEBIDOS -- \n");
+    printf(" > M: %d\n", rec_M);
+    printf(" > F: %d\n", rec_F);
+    printf(" > TOTAL: %d\n\n", rec_F+rec_M);
 
-    printf("...Sauna Requests Served...\n");
-    printf("M: %d\n", done_M);
-    printf("F: %d\n", done_F);
+    printf(" -- SAUNA SERVIDOS -- \n");
+    printf(" > M: %d\n", done_M);
+    printf(" > F: %d\n", done_F);
+    printf(" > TOTAL: %d\n\n", done_F+done_M);
 
-    printf("...Sauna Requests Rejected...\n");
-    printf("M: %d\n", rej_M);
-    printf("F: %d\n", rej_F);
+    printf(" -- SAUNA REJEITADOS -- \n");
+    printf(" > M: %d\n", rej_M);
+    printf(" > F: %d\n", rej_F);
+    printf(" > TOTAL: %d\n", rej_F+rej_M);
+
 }
 
 void writeToFile(Request *req, int tid, char* tip){
 
   struct timeval t1;
   gettimeofday(&t1, NULL);
-  double dt = (double)(t1.tv_usec - t0.tv_usec)/100;
+  double dt = (t1.tv_sec - t0.tv_sec)*1000.0f + (t1.tv_usec - t0.tv_usec) / 1000.0f;
 
   fprintf(WFile, "%-9.2f - %-4d - %-12d - %-4d: %-1c - %-4d - %-10s\n", dt, getpid(), tid ,req->id,req->gender, req->duration, tip);
 
   if(req->gender=='M'){
-    if(strcmp(tip,"REJECT")==0) rej_M++;
-    if(strcmp(tip,"RECEIVE")==0) rec_M++;
-    if(strcmp(tip,"SERVED")==0) done_M++;
+    if(strcmp(tip,"REJEITADO")==0) rej_M++;
+    if(strcmp(tip,"RECEBIDO")==0) rec_M++;
+    if(strcmp(tip,"SERVIDO")==0) done_M++;
   }
   else{
-    if(strcmp(tip,"REJECT")==0) rej_M++;
-    if(strcmp(tip,"RECEIVE")==0) rec_M++;
-    if(strcmp(tip,"SERVED")==0) done_M++;
+    if(strcmp(tip,"REJEITADO")==0) rej_M++;
+    if(strcmp(tip,"RECEBIDO")==0) rec_M++;
+    if(strcmp(tip,"SERVIDO")==0) done_M++;
   }
 
 }
@@ -55,7 +62,6 @@ void DealReject(Request* req){
     if(req->denials < 3)
       faltamLer++;
 
-    printf("Sauna reject: ID:%i-Gender:%c-Duration:%i-Denials:%i;\n", req->id, req->gender, req->duration, req->denials);
     write(REJ_FIFO_FD, req, sizeof(Request));
 }
 
@@ -63,21 +69,18 @@ void *RequestStays(void *arg) {
 
   Request *req = (Request*)arg;
 
-    printf("%d has entered sauna\n",req->id);
-    printf("%d: %d\n", req->id, req->duration);
+
     usleep(req->duration*100);
 
-    writeToFile(req, (int)pthread_self(),"SERVED");
+    writeToFile(req, (int)pthread_self(),"SERVIDO");
 
+    pthread_mutex_lock(&threadMutex);
     ocupantes--;
+    pthread_mutex_unlock(&threadMutex);
 
-    printf("%d has exited sauna\n",req->id);
-
-    printf("Sauna occupation: %d\n", ocupantes);
 
     if(ocupantes==0){
       genderUsing = 'N';
-      printf("Sauna is empty,any gender is allow");
     }
 
     pthread_exit(NULL);
@@ -89,22 +92,19 @@ void DealRequest(Request* req){
 
             if(genderUsing=='N') {
                       genderUsing = req->gender;
-                      printf("Sauna allowed gender: %c\n",genderUsing);
-                      printf("Sauna served: ID:%i-Gender:%c-Duration:%i-Denials:%i;\n", req->id, req->gender, req->duration, req->denials);
                       ocupantes++;
-                      writeToFile(req, getpid(),"RECEIVE");
+                      writeToFile(req, getpid(),"RECEBIDO");
                       pthread_create(&threadsTid[threadPos], NULL,RequestStays,req);
                       threadPos++;
             } else {
                       if(req->gender == genderUsing && ocupantes < capacidade) {
-                          printf("Sauna served:ID:%i-Gender:%c-Duration:%i-Denials:%i;\n", req->id, req->gender, req->duration, req->denials);
                           ocupantes++;
-                          writeToFile(req, getpid(),"RECEIVE");
+                          writeToFile(req, getpid(),"RECEBIDO");
                           pthread_create(&threadsTid[threadPos], NULL, RequestStays,req);
                           threadPos++;
                       } else {
-                          writeToFile(req, getpid(),"RECEIVE");
-                          writeToFile(req, getpid(), "REJECT");
+                          writeToFile(req, getpid(),"RECEBIDO");
+                          writeToFile(req, getpid(), "REJEITADO");
                           DealReject(req);
 
                       }
@@ -119,7 +119,6 @@ void Receptor() {
                 req = malloc(sizeof(Request));
                 i=read(ENT_FIFO_FD, req, sizeof(Request));
                 if(i>0){
-                  printf("Sauna requests left to read: %d\n", faltamLer);
                   DealRequest(req);
                   faltamLer--;
                 }
@@ -138,10 +137,9 @@ void openFifo() {
 
 	while ((ENT_FIFO_FD = open(gen_fifo, O_RDONLY)) == -1) {
 		if (errno == EEXIST)
-			printf("Erro accessing to fifo exist! Retrying...\n");
+			printf("Sauna info: Erro a ler fifo de entrada. Tentando novamente...\n");
 	}
 
-	printf("fifo entrance openned in READONLY mode\n");
 
   return;
 }
@@ -149,16 +147,15 @@ void openFifo() {
 void RejectFifo() {
 	if (mkfifo(rej_fifo, S_IRUSR | S_IWUSR) != 0) {
 		if (errno == EEXIST)
-			printf("Reject fifo already exists\n");
+			printf("Sauna info: FIFO de rejeicao ja existe\n");
 		else
-			printf("Can't create FIFO");
+			printf("Sauna info: Impossivel criar FIFO rejeicao.");
 	}
-	else printf("Reject fifo created\n");
+	//else printf("Sauna info: FIFO rejeicao criado.\n");
 
 	while ((REJ_FIFO_FD = open(rej_fifo, O_WRONLY | O_NONBLOCK)) == -1) {
-		printf("Trying to open Reject fifo\n");
+		//printf("Sauna info: Tentando abrir FIFO rejeicao...\n");
 	}
-	printf("Reject fifo opened in WRITEONLY mode\n");
 
   return;
 }
@@ -169,7 +166,7 @@ int main(int argc, char* argv[]){
   gettimeofday(&t0, NULL);
 
   if(argc != 2){
-    printf("Sintax must be: sauna <n.lugares>\n");
+    printf("Sintax deve ser: sauna <n.lugares>\n");
     exit(-1);
   }
 
@@ -181,7 +178,7 @@ int main(int argc, char* argv[]){
   sprintf(WPathname, "/tmp/bal.%d", pid);
   WFile = fopen(WPathname, "w");
   if (WFile == NULL)
-	printf("Error\n");
+	 printf("Erro!\n");
   openFifo();
   RejectFifo();
   read(ENT_FIFO_FD, &faltamLer, sizeof(int));

@@ -15,32 +15,34 @@ int FDFIFO_rejeitados; //FD do FIFO de rejeitados
 
 
 int gen_M=0, gen_F=0, rej_M=0, rej_F=0, del_M=0, del_F=0;
-char* msg;
 
 void printOnScreen(){
-    printf("--PEDIDOS--\n");
-    printf("M: %d\n", gen_M);
-    printf("F: %d\n", gen_F);
-    printf("T: %d\n", gen_M + gen_F);
 
-    printf("--REJEITADOS--\n");
-    printf("M: %d\n", rej_M);
-    printf("F: %d\n", rej_F);
-    printf("T: %d\n", rej_M + rej_F);
+  printf("\n\n ------ RESUMO ------ \n\n");
 
-    printf("--DESCARTADOS--\n");
-    printf("M: %d\n", del_M);
-    printf("F: %d\n", del_F);
-    printf("T: %d\n", del_M + del_F);
+    printf(" -- GERADOR PEDIDOS --\n");
+    printf(" > M: %d\n", gen_M);
+    printf(" > F: %d\n", gen_F);
+    printf(" > TOTAL: %d\n\n", gen_M + gen_F);
+
+    printf(" -- GERADOR REJEITADOS --\n");
+    printf(" > M: %d\n", rej_M);
+    printf(" > F: %d\n", rej_F);
+    printf(" > TOTAL: %d\n\n", rej_M + rej_F);
+
+    printf(" -- GERADOR DESCARTADOS --\n");
+    printf(" > M: %d\n", del_M);
+    printf(" > F: %d\n", del_F);
+    printf(" > TOTAL: %d\n\n", del_M + del_F);
 }
 
 void printToFile(Request *request, char* tipo){
 
-  struct timeval fim; //struct que guarda a hora do instante pretendido
+  struct timeval fim;
   gettimeofday(&fim, NULL);
-  double inst = (double)(fim.tv_usec - inicio.tv_usec)/1000; //milissegundos depois do inicio do programa
+  double instante = (fim.tv_sec - inicio.tv_sec)*1000.0f + (fim.tv_usec - inicio.tv_usec) / 1000.0f;//milissegundos depois do inicio do programa
 
-  fprintf(ficheiroGer, "%-6.2f - %-4d - %-4d: %-1c - %-4d - %-10s\n", inst, getpid() ,request->id,request->gender, request->duration, tipo);
+  fprintf(ficheiroGer, "%-6.2f - %-4d - %-4d: %-1c - %-4d - %-10s\n", instante, getpid() ,request->id,request->gender, request->duration, tipo);
 
   if(request->gender=='M'){
     if(strcmp(tipo,"PEDIDO")==0) gen_M++;
@@ -81,14 +83,13 @@ void* rejLis(void* arg){
 	Request* req = malloc(sizeof(Request));
 
   while ((FDFIFO_rejeitados = open(rej_fifo, O_RDONLY)) == -1){
-    if (errno == ENOENT) printf("Fifo de rejeitados nao disponivel. Tentando novamente...Retrying...\n");
-    sleep(2);
+    if (errno == ENOENT) //printf("Fifo de rejeitados nao disponivel. Tentando novamente...\n");
+    sleep(1);
   }
 
   while(read(FDFIFO_rejeitados, req, sizeof(Request)) != 0){
     if(req->id!=0){
       if(req->id==-1) break;
-        printf("Gerador info (rejeitado): P:%i-G:%c-T:%i-D:%i;\n", req->id, req->gender, req->duration, req->denials);
         if(req->denials<3) {
             printToFile(req, "REJEITADO");
             write(FDFIFO_sauna, req, sizeof(Request));
@@ -102,12 +103,16 @@ void* rejLis(void* arg){
 
 void openFifoEntradaSauna(){
 
-  while ((FDFIFO_sauna = open("/tmp/entrada", O_WRONLY | O_NONBLOCK)) == -1) {
-  		printf("Gerador info: a espera que sauna abra fifo...\n");
-        sleep(2);
+  if (mkfifo(gen_fifo, S_IRUSR | S_IWUSR) != 0) {
+          if (errno == EEXIST)
+                printf("Gerador info: FIFO '/tmp/entrada' already exists\n");
+          else
+                printf("Gerador info: Can't create FIFO '/tmp/entrada'\n");
+      }
+
+  while ((FDFIFO_sauna = open(gen_fifo, O_WRONLY | O_NONBLOCK)) == -1) {
+        sleep(1);
   	}
-  	printf("Gerador info: fifo de entrada aberta em modo WRITEONLY\n");
-    sleep(2);
   	return;
 }
 
@@ -116,11 +121,9 @@ void openFifoPedidosRejeitados(){
 
   while ((FDFIFO_rejeitados = open(rej_fifo, O_RDONLY)) == -1) {
 		if (errno == EEXIST)
-			printf("Gerador info: fifo de pedidos rejeitados nao existe. A tentar novamente...\n");
       sleep(2);
 	}
 
-	printf("Gerador info: fifo de pedidos rejeitados aberto em modo READONLY\n");
 	return;
 }
 
@@ -135,7 +138,7 @@ int main(int argc, char* argv[]){
 
   //verificar argumentos
   if(argc != 3){
-    printf("Sintax must be: gerador <numero de pedidos> <max.utilizacao>\n");
+    printf("Sintax deve ser: gerador <numero de pedidos> <max.utilizacao>\n");
     exit(-1);
   }
 
