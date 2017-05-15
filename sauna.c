@@ -48,9 +48,9 @@ void writeToFile(Request *req, int tid, char* tip){
     if(strcmp(tip,"SERVIDO")==0) done_M++;
   }
   else{
-    if(strcmp(tip,"REJEITADO")==0) rej_M++;
-    if(strcmp(tip,"RECEBIDO")==0) rec_M++;
-    if(strcmp(tip,"SERVIDO")==0) done_M++;
+    if(strcmp(tip,"REJEITADO")==0) rej_F++;
+    if(strcmp(tip,"RECEBIDO")==0) rec_F++;
+    if(strcmp(tip,"SERVIDO")==0) done_F++;
   }
 
 }
