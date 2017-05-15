@@ -16,25 +16,6 @@ int FDFIFO_rejeitados; //FD do FIFO de rejeitados
 
 int gen_M=0, gen_F=0, rej_M=0, rej_F=0, del_M=0, del_F=0;
 
-void printOnScreen(){
-
-  printf("\n\n ------ RESUMO ------ \n\n");
-
-    printf(" -- GERADOR PEDIDOS --\n");
-    printf(" > M: %d\n", gen_M);
-    printf(" > F: %d\n", gen_F);
-    printf(" > TOTAL: %d\n\n", gen_M + gen_F);
-
-    printf(" -- GERADOR REJEITADOS --\n");
-    printf(" > M: %d\n", rej_M);
-    printf(" > F: %d\n", rej_F);
-    printf(" > TOTAL: %d\n\n", rej_M + rej_F);
-
-    printf(" -- GERADOR DESCARTADOS --\n");
-    printf(" > M: %d\n", del_M);
-    printf(" > F: %d\n", del_F);
-    printf(" > TOTAL: %d\n\n", del_M + del_F);
-}
 
 void printToFile(Request *request, char* tipo){
 
@@ -121,7 +102,7 @@ void openFifoPedidosRejeitados(){
 
   while ((FDFIFO_rejeitados = open(rej_fifo, O_RDONLY)) == -1) {
 		if (errno == EEXIST)
-      sleep(2);
+      sleep(1);
 	}
 
 	return;
@@ -173,9 +154,24 @@ int main(int argc, char* argv[]){
   pthread_join(gen_tid, NULL);
   pthread_join(req_tid, NULL);
 
-  printOnScreen();
-  unlink(gen_fifo);
+  printf("\n\n ------ RESUMO ------ \n\n");
 
+    printf(" -- GERADOR PEDIDOS --\n");
+    printf(" > M: %d\n", gen_M);
+    printf(" > F: %d\n", gen_F);
+    printf(" > TOTAL: %d\n\n", gen_M + gen_F);
+
+    printf(" -- GERADOR REJEITADOS --\n");
+    printf(" > M: %d\n", rej_M);
+    printf(" > F: %d\n", rej_F);
+    printf(" > TOTAL: %d\n\n", rej_M + rej_F);
+
+    printf(" -- GERADOR DESCARTADOS --\n");
+    printf(" > M: %d\n", del_M);
+    printf(" > F: %d\n", del_F);
+    printf(" > TOTAL: %d\n\n", del_M + del_F);  unlink(gen_fifo);
+
+    fclose(ficheiroGer);
   return 0;
 
 }

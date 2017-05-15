@@ -14,26 +14,6 @@ int threadPos=0;
 
 pthread_mutex_t threadMutex = PTHREAD_MUTEX_INITIALIZER;
 
-
-void printStats(){
-
-    printf(" -- SAUNA RECEBIDOS -- \n");
-    printf(" > M: %d\n", rec_M);
-    printf(" > F: %d\n", rec_F);
-    printf(" > TOTAL: %d\n\n", rec_F+rec_M);
-
-    printf(" -- SAUNA SERVIDOS -- \n");
-    printf(" > M: %d\n", done_M);
-    printf(" > F: %d\n", done_F);
-    printf(" > TOTAL: %d\n\n", done_F+done_M);
-
-    printf(" -- SAUNA REJEITADOS -- \n");
-    printf(" > M: %d\n", rej_M);
-    printf(" > F: %d\n", rej_F);
-    printf(" > TOTAL: %d\n", rej_F+rej_M);
-
-}
-
 void writeToFile(Request *req, int tid, char* tip){
 
   struct timeval t1;
@@ -151,7 +131,6 @@ void RejectFifo() {
 		else
 			printf("Sauna info: Impossivel criar FIFO rejeicao.");
 	}
-	//else printf("Sauna info: FIFO rejeicao criado.\n");
 
 	while ((REJ_FIFO_FD = open(rej_fifo, O_WRONLY | O_NONBLOCK)) == -1) {
 		//printf("Sauna info: Tentando abrir FIFO rejeicao...\n");
@@ -187,7 +166,21 @@ int main(int argc, char* argv[]){
   {
 	pthread_join(threadsTid[n], NULL);
   }
-  printStats();
+  printf(" -- SAUNA RECEBIDOS -- \n");
+  printf(" > M: %d\n", rec_M);
+  printf(" > F: %d\n", rec_F);
+  printf(" > TOTAL: %d\n\n", rec_F+rec_M);
+
+  printf(" -- SAUNA SERVIDOS -- \n");
+  printf(" > M: %d\n", done_M);
+  printf(" > F: %d\n", done_F);
+  printf(" > TOTAL: %d\n\n", done_F+done_M);
+
+  printf(" -- SAUNA REJEITADOS -- \n");
+  printf(" > M: %d\n", rej_M);
+  printf(" > F: %d\n", rej_F);
+  printf(" > TOTAL: %d\n", rej_F+rej_M);
+
   fclose(WFile);
   unlink(rej_fifo);
   exit(0);
